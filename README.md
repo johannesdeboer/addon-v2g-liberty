@@ -1,5 +1,9 @@
 # V2G&nbsp;Liberty
 
+This fork adds accepted EV schedule export for LAHEMS2 and a Home Assistant UI
+for importing settings and history from official V2G Liberty 0.9.0.
+See the [migration guide](v2g-liberty/MIGRATION.md) before starting the fork.
+
 ##### Full automatic and optimised control over bidirectional charging of your electric vehicle, saving the average user over *€ 1000* on charging cost in 2023.
 
 Use your electric vehicle (EV) as you would normally do, drive where you want go.<br>
@@ -92,7 +96,7 @@ Preferably name the calendar something like `car_reservation` so you can easily 
 
 The installation of this add-on is pretty straightforward.
 
-1. Copy this URL: `https://github.com/V2G-liberty/addon-v2g-liberty.git`
+1. Copy this URL: `https://github.com/johannesdeboer/addon-v2g-liberty.git`
 2. In home assistant got to `settings > add-ons`.
 3. Hit the big blue button in the bottom right `add-on shop`.
 4. Open the menu in the top right with the ⋮-icon and select the option `repositories`.

@@ -1,5 +1,10 @@
 # V2G Liberty add-on
 
+This fork exports V2G Liberty's accepted schedule to LAHEMS2. Existing users
+can import settings and history using **Backup import mode** in this app's
+Configuration tab. Follow the [migration guide](https://github.com/johannesdeboer/addon-v2g-liberty/blob/lahems2-backup-import/v2g-liberty/MIGRATION.md)
+before starting the fork for the first time.
+
 The V2G Liberty add-on delivers full automatic and optimised control over bidirectional charging
 of your electric vehicle (EV). Bidirectional charging is also known as Vehicle to Grid (V2G).
 
@@ -41,7 +46,7 @@ Later updates will install automatically.
 As you see this text in the add-on UI you've probably already
 completed steps 1 to 7, if so, skip them.
 
-1. Copy this URL: `https://github.com/V2G-liberty/addon-v2g-liberty.git`
+1. Copy this URL: `https://github.com/johannesdeboer/addon-v2g-liberty.git`
 2. In home assistant got to `settings > add-ons`.
 3. Hit the big blue button in the bottom right `add-on shop`.
 4. Open the menu in the top right with the ⋮-icon and select the option `repositories`.

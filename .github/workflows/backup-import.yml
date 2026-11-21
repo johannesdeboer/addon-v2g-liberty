@@ -1,0 +1,23 @@
+name: V2G Liberty backup import
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test backup import
+        env:
+          PYTHONPATH: v2g-liberty/rootfs/root/v2g-backup-import
+        run: python -m unittest discover -s tests -v
+      - name: Check app startup scripts
+        run: |
+          bash -n v2g-liberty/rootfs/etc/s6-overlay/s6-rc.d/init-appdaemon/run
+          bash -n v2g-liberty/rootfs/etc/s6-overlay/s6-rc.d/appdaemon/run
+          python -m py_compile v2g-liberty/rootfs/root/v2g-backup-import/*.py

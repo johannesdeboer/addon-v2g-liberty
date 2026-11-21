@@ -1,2 +1,7 @@
 ---
 configuration:
+
+configuration:
+  backup_import_mode:
+    name: Backup import mode
+    description: Open the official V2G Liberty backup importer while charger control is stopped.

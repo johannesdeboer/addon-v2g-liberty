@@ -4,6 +4,11 @@
 # Home Assistant Community Add-on: AppDaemon
 # Runs the AppDaemon
 # ==============================================================================
+if bashio::config.true 'backup_import_mode'; then
+    bashio::log.info "Backup import mode enabled. Charger control is stopped."
+    exec python3 /root/v2g-backup-import/web_ui.py
+fi
+
 declare log_level
 
 bashio::log.info "Starting AppDaemon..."

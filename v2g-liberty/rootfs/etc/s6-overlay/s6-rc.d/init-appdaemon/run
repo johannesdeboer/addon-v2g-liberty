@@ -5,6 +5,10 @@
 # Configures V2G Liberty
 # ==============================================================================
 
+if bashio::config.true 'backup_import_mode'; then
+    exit 0
+fi
+
 bashio::log.info "Configuring V2G Liberty..."
 
 # Create directory where log files will be written
