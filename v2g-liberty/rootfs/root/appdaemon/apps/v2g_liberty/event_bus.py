@@ -62,6 +62,11 @@ class EventBus(AsyncIOEventEmitter):
             - `old_charger_state` (int): The old (previous) state of the charger, can 'unavailable'.
             - `new_charger_state_str` (str): text version to show in directly, can be 'unavailable'.
 
+    - `ev_plug_state`:
+        - **Description**: Physical vehicle connection reported by the charger.
+        - **Arguments**:
+            - `plugged_in` (bool | None): Connected, disconnected, or unknown.
+
     - `discharge_refused`:
         - **Description**: The charger accepted the connection and the car is plugged in,
           but it refuses to discharge right now. Emitted on every refusal and again with

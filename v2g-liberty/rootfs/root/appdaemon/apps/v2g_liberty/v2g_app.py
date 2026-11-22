@@ -40,6 +40,7 @@ class V2GLibertyApp(Hass):
 
         start_module = datetime.now()
         ha_ui_manager = HAUIManager(self, event_bus=event_bus)
+        await ha_ui_manager.publish_ev_plug_state(None)
         self._log_init_time("HAUIManager", start_module)
 
         start_module = datetime.now()
