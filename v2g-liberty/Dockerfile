@@ -15,6 +15,8 @@ RUN \
         python3-dev \
     \
     && apk add --no-cache \
+        py3-cryptography \
+        py3-pynacl \
         py3-pip \
         py3-wheel \
         python3 \

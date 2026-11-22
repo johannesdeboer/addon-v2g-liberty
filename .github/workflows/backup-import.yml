@@ -12,6 +12,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - run: python -m pip install securetar==2026.10.0 aiohttp
       - name: Test backup import
         env:
           PYTHONPATH: v2g-liberty/rootfs/root/v2g-backup-import
@@ -21,3 +22,11 @@ jobs:
           bash -n v2g-liberty/rootfs/etc/s6-overlay/s6-rc.d/init-appdaemon/run
           bash -n v2g-liberty/rootfs/etc/s6-overlay/s6-rc.d/appdaemon/run
           python -m py_compile v2g-liberty/rootfs/root/v2g-backup-import/*.py
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build and check the amd64 app image
+        run: |
+          docker build --build-arg BUILD_ARCH=amd64 --build-arg BUILD_VERSION=0.9.0-lahems.2 -t v2g-liberty-test v2g-liberty
+          docker run --rm --entrypoint python3 v2g-liberty-test -c 'import sys; sys.path.insert(0, "/root/v2g-backup-import"); import web_ui'

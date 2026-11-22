@@ -9,7 +9,12 @@ import tarfile
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from backup_import import DATABASE, ImportError, OFFICIAL_APP, SETTINGS, import_backup
+from securetar import SecureTarArchive
+
+from backup_import import (
+    DATABASE, ImportError, OFFICIAL_APP, SETTINGS, import_backup,
+    list_local_backups, local_backup_path,
+)
 
 
 def tar_entry(archive, name, data):
@@ -27,6 +32,8 @@ class BackupImportTest(TestCase):
         self.target.mkdir()
         self.source = self.base / DATABASE
         self.backup = self.base / "backup.tar"
+        self.local = self.base / "local"
+        self.local.mkdir()
         self.db = sqlite3.connect(self.source)
         self.addCleanup(self.db.close)
         self.db.executescript(
@@ -94,3 +101,45 @@ class BackupImportTest(TestCase):
             import_backup(self.backup, self.target)
         self.assertEqual('{"existing":true}', existing.read_text())
         self.assertFalse((self.target / DATABASE).exists())
+
+    def test_local_picker_filters_and_imports_a_large_backup(self):
+        self.make_backup(slug="other")
+        self.backup.rename(self.local / "other.tar")
+        self.make_backup(version="1.0.0")
+        self.backup.rename(self.local / "newer.tar")
+        self.make_backup()
+        selected = self.local / "selected.tar"
+        self.backup.rename(selected)
+        # The tar reader ignores padding after the end of the archive.
+        with selected.open("r+b") as file:
+            file.truncate(113 * 1024 * 1024)
+        (self.local / "alias.tar").symlink_to(selected)
+        (self.local / "broken.tar").write_bytes(b"invalid")
+        self.assertEqual(
+            [{"file": "selected.tar", "name": "selected.tar", "date": "", "encrypted": False}],
+            list_local_backups(self.local),
+        )
+        with self.assertRaises(ImportError):
+            local_backup_path(self.local, "../selected.tar")
+        import_backup(local_backup_path(self.local, "selected.tar"), self.target)
+        self.assertEqual({SETTINGS, DATABASE}, {path.name for path in self.target.iterdir()})
+
+    def test_encrypted_local_backup_requires_its_key(self):
+        password = "synthetic backup key"
+        selected = self.local / "encrypted.tar"
+        with SecureTarArchive(selected, mode="w", password=password) as outer:
+            with outer.create_tar("./" + OFFICIAL_APP + ".tar.gz") as inner:
+                tar_entry(inner, "data/" + SETTINGS, b'{"input_text.charger_type":"example"}')
+                tar_entry(inner, "data/" + DATABASE, self.source.read_bytes())
+            tar_entry(outer.tar, "./backup.json", json.dumps({
+                "name": "Encrypted backup", "type": "partial", "protected": True,
+                "addons": [{"slug": OFFICIAL_APP, "version": "0.9.0"}],
+            }).encode())
+        self.assertTrue(list_local_backups(self.local)[0]["encrypted"])
+        for key in (None, "wrong key"):
+            with self.subTest(key=key), self.assertRaisesRegex(ImportError, "encryption key"):
+                import_backup(selected, self.target, password=key)
+            self.assertFalse(any(self.target.iterdir()))
+        import_backup(selected, self.target, password=password)
+        with closing(sqlite3.connect(self.target / DATABASE)) as db:
+            self.assertEqual([(1,)], db.execute("SELECT energy FROM interval_log").fetchall())
