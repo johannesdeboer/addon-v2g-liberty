@@ -1,5 +1,6 @@
 """Utility module for managing writing to Home Assistant entities."""
 
+import asyncio
 import datetime
 from appdaemon.plugins.hass.hassapi import Hass  # pylint: disable=import-error,no-name-in-module
 from .event_bus import EventBus
@@ -13,6 +14,7 @@ class HAUIManager:
 
     hass: Hass = None
     event_bus: EventBus = None
+    EV_PLUG_ENTITY = "binary_sensor.v2g_liberty_ev_plugged_in"
 
     # For indication to the user if/how fast polling is in progress
     poll_update_text: str = ""
@@ -20,6 +22,7 @@ class HAUIManager:
     def __init__(self, hass: Hass, event_bus: EventBus):
         self.hass = hass
         self.event_bus = event_bus
+        self._ev_plug_state_lock = asyncio.Lock()
 
         self.__log = get_class_method_logger(module_name="ha_ui_manager")
 
@@ -45,6 +48,7 @@ class HAUIManager:
         self.event_bus.add_event_listener(
             "charger_state_change", self._handle_charger_state_change
         )
+        self.event_bus.add_event_listener("ev_plug_state", self.publish_ev_plug_state)
         self.event_bus.add_event_listener(
             "charge_power_change", self._handle_charge_power_change
         )
@@ -73,6 +77,22 @@ class HAUIManager:
         await self.__update_ha_entity(
             entity_id="sensor.charger_info", new_value=charger_info
         )
+
+    async def publish_ev_plug_state(self, plugged_in: bool | None):
+        """Expose the charger's physical plug state to Home Assistant."""
+        state = {True: "on", False: "off", None: "unavailable"}[plugged_in]
+        async with self._ev_plug_state_lock:
+            try:
+                await self.hass.set_state(
+                    self.EV_PLUG_ENTITY,
+                    state=state,
+                    attributes={
+                        "friendly_name": "V2G Liberty EV plugged in",
+                        "device_class": "plug",
+                    },
+                )
+            except Exception:
+                self.__log("Could not publish the EV plug state.", level="WARNING")
 
     async def _handle_charge_power_change(self, new_power: int):
         """Handle changes in the actual charge power."""

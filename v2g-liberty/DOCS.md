@@ -1,7 +1,11 @@
 # V2G Liberty add-on
 
-This fork exports V2G Liberty's accepted schedule to LAHEMS2. Existing users
-can import settings and history using **Backup import mode** in this app's
+This fork exports V2G Liberty's accepted schedule to LAHEMS2. In LAHEMS2,
+select `binary_sensor.v2g_liberty_ev_plugged_in` as **EV connection sensor**.
+It reports the physical connection from the charger, including when charging
+is paused. The sensor is unavailable when the plug state cannot be determined.
+
+Existing users can import settings and history using **Backup import mode** in this app's
 Configuration tab. Follow the [migration guide](https://github.com/johannesdeboer/addon-v2g-liberty/blob/lahems2-backup-import/v2g-liberty/MIGRATION.md)
 before starting the fork for the first time.
 

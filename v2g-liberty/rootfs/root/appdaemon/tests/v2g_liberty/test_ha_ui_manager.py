@@ -1,10 +1,13 @@
 """Unit test (pytest) for ha_ui_manager module."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 import pytest
+from appdaemon.plugins.hass.hassapi import Hass
+
+from apps.v2g_liberty.chargers.evtec_bidipro import EVtecBiDiProClient
+from apps.v2g_liberty.chargers.wallbox_quasar_1 import WallboxQuasar1Client
 from apps.v2g_liberty.event_bus import EventBus
 from apps.v2g_liberty.ha_ui_manager import HAUIManager
-from appdaemon.plugins.hass.hassapi import Hass
 
 
 @pytest.fixture
@@ -35,7 +38,51 @@ def ha_ui_manager(hass, event_bus):
 async def test_initialization(ha_ui_manager, event_bus):
     assert ha_ui_manager.hass is not None
     assert ha_ui_manager.event_bus is not None
-    assert event_bus.add_event_listener.call_count == 9
+    assert event_bus.add_event_listener.call_count == 10
+    event_bus.add_event_listener.assert_any_call(
+        "ev_plug_state", ha_ui_manager.publish_ev_plug_state
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("plugged_in", "state"), [(True, "on"), (False, "off"), (None, "unavailable")]
+)
+async def test_publish_ev_plug_state(ha_ui_manager, hass, plugged_in, state):
+    await ha_ui_manager.publish_ev_plug_state(plugged_in)
+    hass.set_state.assert_awaited_once_with(
+        "binary_sensor.v2g_liberty_ev_plugged_in",
+        state=state,
+        attributes={"friendly_name": "V2G Liberty EV plugged in", "device_class": "plug"},
+    )
+
+
+@pytest.mark.parametrize(
+    ("driver", "charger_state", "plugged_in"),
+    [
+        (WallboxQuasar1Client, 4, True),
+        (WallboxQuasar1Client, 11, True),
+        (WallboxQuasar1Client, 6, False),
+        (WallboxQuasar1Client, 7, None),
+        (EVtecBiDiProClient, 5, True),
+        (EVtecBiDiProClient, 8, True),
+        (EVtecBiDiProClient, 1, False),
+        (EVtecBiDiProClient, 12, None),
+    ],
+)
+def test_drivers_report_physical_plug_state(driver, charger_state, plugged_in):
+    charger = driver(Mock(), Mock(), Mock())
+    charger._report_ev_plug_state(charger_state)
+    charger.event_bus.emit_event.assert_called_once_with(
+        "ev_plug_state", plugged_in=plugged_in
+    )
+
+
+@pytest.mark.asyncio
+async def test_charger_communication_loss_invalidates_plug_state():
+    charger = WallboxQuasar1Client(Mock(), Mock(), Mock())
+    await charger._update_charger_communication_state(can_communicate=False)
+    charger.event_bus.emit_event.assert_any_call("ev_plug_state", plugged_in=None)
 
 
 @pytest.mark.asyncio

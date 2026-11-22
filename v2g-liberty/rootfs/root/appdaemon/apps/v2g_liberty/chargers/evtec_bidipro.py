@@ -120,6 +120,8 @@ class EVtecBiDiProClient(BidirectionalEVSE):
     # 4..6 are plugged in but not yet controllable: treat as "no car" until the
     # session is up, exactly as the original driver did against the hardware.
     DISCONNECTED_STATES: ClassVar[list[int]] = [0, 1, 4, 5, 6]
+    PLUGGED_STATES = (4, 5, 6, 7, 8, 9, 10, 11)
+    UNPLUGGED_STATES = (1,)
     CHARGING_STATE: int = 7
     DISCHARGING_STATE: int = 8
     AVAILABILITY_STATES: ClassVar[list[int]] = [7, 8, 9, 10, 11]
@@ -461,6 +463,7 @@ class EVtecBiDiProClient(BidirectionalEVSE):
         """
         self._log("shutting down")
         self._is_shut_down = True
+        self._report_ev_plug_state(None)
         await cancel_timer_silent(self.hass, self.timer_id_check_modus_exception_state)
         self.timer_id_check_modus_exception_state = None
         await cancel_timer_silent(self.hass, self.timer_id_check_error_state)
@@ -580,6 +583,7 @@ class EVtecBiDiProClient(BidirectionalEVSE):
         self, new_charger_state: int, old_charger_state: int
     ):
         self._log(f"called {new_charger_state=}, {old_charger_state=}.")
+        self._report_ev_plug_state(new_charger_state)
         if not self._am_i_active:
             self._log("Called while inactive, not blocking.", level="DEBUG")
 

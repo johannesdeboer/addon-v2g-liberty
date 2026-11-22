@@ -227,6 +227,8 @@ class WallboxQuasar1Client(BidirectionalEVSE):
     # One could argue that Error states should also be considered "not connected",
     # but these are handled in other ways.
     DISCONNECTED_STATES = [0, 6]
+    PLUGGED_STATES = (1, 2, 3, 4, 5, 8, 10, 11)
+    UNPLUGGED_STATES = (0, 6)
     CHARGING_STATE: int = 1
     DISCHARGING_STATE: int = 11
     AVAILABILITY_STATES = [1, 2, 4, 5, 11]
@@ -483,6 +485,7 @@ class WallboxQuasar1Client(BidirectionalEVSE):
         """
         self._log("shutting down")
         self._is_shut_down = True
+        self._report_ev_plug_state(None)
         await cancel_timer_silent(self.hass, self.timer_id_check_modus_exception_state)
         self.timer_id_check_modus_exception_state = None
         await cancel_timer_silent(self.hass, self.timer_id_check_error_state)
@@ -634,6 +637,7 @@ class WallboxQuasar1Client(BidirectionalEVSE):
         self, new_charger_state: int, old_charger_state: int
     ):
         self._log(f"called {new_charger_state=}, {old_charger_state=}.")
+        self._report_ev_plug_state(new_charger_state)
         if not self._am_i_active:
             self._log("Called while inactive, not blocking.", level="DEBUG")
 

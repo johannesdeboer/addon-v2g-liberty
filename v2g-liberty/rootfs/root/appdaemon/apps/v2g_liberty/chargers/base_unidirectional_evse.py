@@ -73,6 +73,8 @@ class UnidirectionalEVSE(AsyncIOEventEmitter, ABC):
     DISCHARGING_STATE: int = None
     DISCONNECTED_STATES: list[int] = None
     CHARGER_STATES: dict[int, str] = None  # state number -> text, for logging
+    PLUGGED_STATES: tuple[int, ...] = ()
+    UNPLUGGED_STATES: tuple[int, ...] = ()
     _MCE_CHARGER_STATE: ModbusConfigEntity = None
     _mb_client: V2GmodbusClient = None
 
@@ -182,9 +184,21 @@ class UnidirectionalEVSE(AsyncIOEventEmitter, ABC):
         return charger_state
 
     async def _update_charger_communication_state(self, can_communicate: bool):
+        if not can_communicate:
+            self._report_ev_plug_state(None)
         self.event_bus.emit_event(
             "charger_communication_state_change", can_communicate=can_communicate
         )
+
+    def _report_ev_plug_state(self, charger_state: int | None):
+        """Report physical connection independently of charging readiness."""
+        if charger_state in self.PLUGGED_STATES:
+            plugged_in = True
+        elif charger_state in self.UNPLUGGED_STATES:
+            plugged_in = False
+        else:
+            plugged_in = None
+        self.event_bus.emit_event("ev_plug_state", plugged_in=plugged_in)
 
     async def _handle_soc_change(self, new_soc: int, old_soc: int):
         self.event_bus.emit_event("soc_change", new_soc=new_soc, old_soc=old_soc)
